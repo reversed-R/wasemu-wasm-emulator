@@ -1,7 +1,7 @@
 use crate::{decoder::WasmModule, emulator::Emulator};
 
-pub struct EmulatorBuilder {
-    wasm: WasmModule,
+pub struct EmulatorBuilder<'code> {
+    wasm: WasmModule<'code>,
 }
 
 pub enum Linkable {
@@ -9,8 +9,8 @@ pub enum Linkable {
     Memory,
 }
 
-impl EmulatorBuilder {
-    pub fn load(wasm: &[u8]) -> Result<Self, ()> {
+impl<'code> EmulatorBuilder<'code> {
+    pub fn load(wasm: &'code [u8]) -> Result<Self, ()> {
         let wasm = WasmModule::decode(wasm).expect("failed to decode");
 
         Ok(Self { wasm })
@@ -20,7 +20,7 @@ impl EmulatorBuilder {
         Ok(self)
     }
 
-    pub fn build(self) -> Result<Emulator, ()> {
+    pub fn build(self) -> Result<Emulator<'code>, ()> {
         Ok(Emulator { wasm: self.wasm })
     }
 }

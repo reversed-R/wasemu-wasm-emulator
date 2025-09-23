@@ -3,18 +3,18 @@ use crate::decoder::WasmModule;
 pub mod builder;
 
 #[derive(Debug, Clone)]
-pub struct Emulator {
-    wasm: WasmModule,
+pub struct Emulator<'code> {
+    wasm: WasmModule<'code>,
 }
 
-pub struct RestartableEmulator(Emulator);
+pub struct RestartableEmulator<'code>(Emulator<'code>);
 
-impl Emulator {
+impl<'code> Emulator<'code> {
     pub fn start(&mut self) -> Result<(), ()> {
         Ok(())
     }
 
-    pub fn start_until_limit(self, limit: usize) -> Result<RestartableEmulator, ()> {
+    pub fn start_until_limit(self, limit: usize) -> Result<RestartableEmulator<'code>, ()> {
         Ok(RestartableEmulator(self))
     }
 
@@ -22,7 +22,11 @@ impl Emulator {
         Ok(())
     }
 
-    pub fn exec_func_until_limit(self, id: &str, limit: usize) -> Result<RestartableEmulator, ()> {
+    pub fn exec_func_until_limit(
+        self,
+        id: &'static str,
+        limit: usize,
+    ) -> Result<RestartableEmulator<'code>, ()> {
         Ok(RestartableEmulator(self))
     }
 
@@ -30,17 +34,17 @@ impl Emulator {
         Ok(())
     }
 
-    fn restart_until_limit(self, limit: usize) -> Result<RestartableEmulator, ()> {
+    fn restart_until_limit(self, limit: usize) -> Result<RestartableEmulator<'code>, ()> {
         Ok(RestartableEmulator(self))
     }
 }
 
-impl RestartableEmulator {
+impl<'code> RestartableEmulator<'code> {
     pub fn restart(&mut self) -> Result<(), ()> {
         self.0.restart()
     }
 
-    pub fn restart_until_limit(self, limit: usize) -> Result<RestartableEmulator, ()> {
+    pub fn restart_until_limit(self, limit: usize) -> Result<RestartableEmulator<'code>, ()> {
         self.0.restart_until_limit(limit)
     }
 }
