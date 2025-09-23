@@ -1,5 +1,7 @@
 fn main() {
-    let mut emulator = wasemu::emulator::builder::EmulatorBuilder::load("wasm code".as_bytes())
+    let wasm = std::fs::read("assets/main.wasm").expect("failed to read wasm file");
+
+    let mut emulator = wasemu::emulator::builder::EmulatorBuilder::load(&wasm)
         .expect("failed to load")
         .link("print_i32", wasemu::emulator::builder::Linkable::Function)
         .expect("failed to link")
@@ -15,6 +17,8 @@ fn main() {
         .expect("failed to link")
         .build()
         .expect("failed to build");
+
+    eprintln!("emulator: {emulator:#?}");
 
     // in the case wasm contains start and run to the end
     emulator.start().expect("failed to run");

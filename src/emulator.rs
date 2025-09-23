@@ -1,6 +1,11 @@
+use crate::decoder::WasmModule;
+
 pub mod builder;
 
-pub struct Emulator {}
+#[derive(Debug, Clone)]
+pub struct Emulator {
+    wasm: WasmModule,
+}
 
 pub struct RestartableEmulator(Emulator);
 
