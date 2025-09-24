@@ -1,3 +1,5 @@
+mod instructions;
+pub mod jit;
 mod sections;
 
 use crate::decoder::sections::{
@@ -33,6 +35,7 @@ pub enum DecoderError {
     SectionDuplicated,
     FunctionTypeNotFound,
     NumberOfTypeSectionAndFunctionSectionMismatched,
+    InvalidInstructionCode,
 }
 
 impl<'code> WasmModule<'code> {

@@ -48,4 +48,8 @@ impl<'code> JITCodeBody<'code> {
 
         Ok((Self { code }, opt_wasm))
     }
+
+    pub fn code(&self) -> &[u8] {
+        self.code
+    }
 }

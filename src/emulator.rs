@@ -1,17 +1,27 @@
-use crate::decoder::WasmModule;
+use crate::decoder::jit::JITDecoder;
 
 pub mod builder;
 
 #[derive(Debug, Clone)]
 pub struct Emulator<'code> {
-    wasm: WasmModule<'code>,
+    code: JITDecoder<'code>,
 }
 
 pub struct RestartableEmulator<'code>(Emulator<'code>);
 
 impl<'code> Emulator<'code> {
     pub fn start(&mut self) -> Result<(), ()> {
-        Ok(())
+        loop {
+            match self.code.try_next() {
+                Ok(instr) => {
+                    eprintln!("instr: {instr:?}");
+                }
+                Err(e) => {
+                    eprintln!("error: {e:?}");
+                    return Ok(());
+                }
+            }
+        }
     }
 
     pub fn start_until_limit(self, limit: usize) -> Result<RestartableEmulator<'code>, ()> {

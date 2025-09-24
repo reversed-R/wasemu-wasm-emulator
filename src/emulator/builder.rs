@@ -1,4 +1,7 @@
-use crate::{decoder::WasmModule, emulator::Emulator};
+use crate::{
+    decoder::{WasmModule, jit::JITDecoder},
+    emulator::Emulator,
+};
 
 pub struct EmulatorBuilder<'code> {
     wasm: WasmModule<'code>,
@@ -21,6 +24,8 @@ impl<'code> EmulatorBuilder<'code> {
     }
 
     pub fn build(self) -> Result<Emulator<'code>, ()> {
-        Ok(Emulator { wasm: self.wasm })
+        Ok(Emulator {
+            code: JITDecoder::new(self.wasm),
+        })
     }
 }
