@@ -10,7 +10,7 @@ pub struct CodeBody {}
 
 #[derive(Debug, Clone)]
 pub struct JITCodeSection<'code> {
-    funcs: Vec<JITCodeBody<'code>>,
+    pub funcs: Vec<JITCodeBody<'code>>,
 }
 
 #[derive(Debug, Clone)]

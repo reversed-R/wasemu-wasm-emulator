@@ -1,6 +1,11 @@
 mod sections;
 
-use crate::decoder::sections::Section;
+use crate::decoder::sections::{
+    SectionHeader, SectionId,
+    code_section::{JITCodeBody, JITCodeSection},
+    function_section::FunctionSection,
+    type_section::{TypeBody, TypeSection},
+};
 
 #[derive(Debug, Clone, Copy)]
 struct WasmVersion(u32);
@@ -8,7 +13,13 @@ struct WasmVersion(u32);
 #[derive(Debug, Clone)]
 pub struct WasmModule<'code> {
     version: WasmVersion,
-    sections: Vec<Section<'code>>,
+    funcs: Vec<WasmFunction<'code>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct WasmFunction<'code> {
+    typ: TypeBody,
+    code: JITCodeBody<'code>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,6 +29,10 @@ pub enum DecoderError {
     InvalidSectionCode,
     InvalidTypeCode,
     InvalidWasmType,
+    InvalidSectionOrder,
+    SectionDuplicated,
+    FunctionTypeNotFound,
+    NumberOfTypeSectionAndFunctionSectionMismatched,
 }
 
 impl<'code> WasmModule<'code> {
@@ -33,19 +48,103 @@ impl<'code> WasmModule<'code> {
         let (version_u32, opt_wasm) = wasm.try_next_le_u32()?;
         let version = WasmVersion(version_u32);
 
-        let mut sections = vec![];
         let mut wasm = if let Some(wasm) = opt_wasm {
             wasm
         } else {
-            return Ok(WasmModule { version, sections });
+            return Ok(WasmModule {
+                version,
+                funcs: vec![],
+            });
         };
+        let mut minsid = SectionId::Custom;
+
+        let mut types: Option<Vec<TypeBody>> = None;
+        let mut funcs: Option<Vec<u32>> = None;
+        let mut codes: Option<Vec<JITCodeBody<'code>>> = None;
         loop {
-            let (section, opt_wasm) = Section::decode(wasm)?;
-            sections.push(section);
+            let (shdr, opt_wasm) = SectionHeader::decode(wasm)?;
             if let Some(remain_wasm) = opt_wasm {
                 wasm = remain_wasm;
             } else {
-                return Ok(WasmModule { version, sections });
+                return Err(DecoderError::InvalidCodeSize);
+            }
+
+            if shdr.id.as_u8() != 0x00 {
+                if shdr.id < minsid {
+                    return Err(DecoderError::InvalidSectionOrder);
+                } else if shdr.id == minsid {
+                    return Err(DecoderError::SectionDuplicated);
+                }
+            }
+            if shdr.id != SectionId::Custom {
+                minsid = shdr.id;
+            }
+
+            let opt_wasm;
+            match shdr.id {
+                SectionId::Custom => {
+                    todo!()
+                }
+                SectionId::Type => {
+                    let section;
+                    (section, opt_wasm) = TypeSection::decode(wasm)?;
+                    types = Some(section.types);
+                }
+                SectionId::Import => {
+                    todo!()
+                }
+                SectionId::Function => {
+                    let section;
+                    (section, opt_wasm) = FunctionSection::decode(wasm)?;
+                    funcs = Some(section.funcs);
+                }
+                SectionId::Memory => {
+                    todo!()
+                }
+                SectionId::Export => {
+                    todo!()
+                }
+                SectionId::Code => {
+                    let section;
+                    (section, opt_wasm) = JITCodeSection::decode(wasm, shdr.size as usize)?;
+                    codes = Some(section.funcs);
+                }
+                SectionId::Data => {
+                    todo!()
+                }
+            }
+
+            if let Some(remain_wasm) = opt_wasm {
+                wasm = remain_wasm;
+            } else if funcs.is_some() && codes.is_some() && types.is_some() {
+                let funcs = funcs.unwrap();
+                let codes = codes.unwrap();
+                let types = types.unwrap();
+
+                return Ok(WasmModule {
+                    version,
+                    funcs: funcs
+                        .into_iter()
+                        .zip(codes.into_iter())
+                        .map(|(func, code)| {
+                            if let Some(typ) = types.get(func as usize) {
+                                Ok(WasmFunction {
+                                    typ: typ.clone(),
+                                    code,
+                                })
+                            } else {
+                                Err(DecoderError::FunctionTypeNotFound)
+                            }
+                        })
+                        .collect::<Result<Vec<WasmFunction>, DecoderError>>()?,
+                });
+            } else if funcs.is_none() && codes.is_none() {
+                return Ok(WasmModule {
+                    version,
+                    funcs: vec![],
+                });
+            } else {
+                return Err(DecoderError::NumberOfTypeSectionAndFunctionSectionMismatched);
             }
         }
     }

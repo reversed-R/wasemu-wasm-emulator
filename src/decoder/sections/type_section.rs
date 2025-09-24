@@ -2,7 +2,7 @@ use crate::decoder::{DecoderError, RemainCode};
 
 #[derive(Debug, Clone)]
 pub struct TypeSection {
-    types: Vec<TypeBody>,
+    pub types: Vec<TypeBody>,
 }
 
 #[derive(Debug, Clone)]

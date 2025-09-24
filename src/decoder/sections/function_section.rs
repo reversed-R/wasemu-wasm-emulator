@@ -2,7 +2,7 @@ use crate::decoder::{DecoderError, RemainCode};
 
 #[derive(Debug, Clone)]
 pub struct FunctionSection {
-    funcs: Vec<u32>,
+    pub funcs: Vec<u32>,
 }
 
 impl FunctionSection {
