@@ -46,4 +46,25 @@ impl<'code> JITDecoder<'code> {
             ))
         }
     }
+
+    pub(super) fn try_next_leb128(&mut self) -> Result<u32, DecoderError> {
+        let code = self.module.funcs[self.pc.func].code.code();
+        let mut acc: u32 = 0;
+        let mut count: usize = 0;
+
+        while count < code.len() {
+            let b = code[self.pc.byte + count];
+            let val: u32 = (b & 0b01111111) as u32;
+            let shifted_val = val << (7 * count);
+            acc += shifted_val;
+            count += 1;
+            if b < 0b10000000 {
+                break;
+            }
+        }
+
+        self.pc.byte += count;
+
+        Ok(acc)
+    }
 }
